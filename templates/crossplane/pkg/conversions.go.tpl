@@ -17,9 +17,6 @@ import (
 	awsclients "github.com/crossplane/provider-aws/pkg/clients"
 )
 
-// NOTE(muvaf): We return pointers in case the function needs to start with an
-// empty object, hence need to return a new pointer.
-
 {{ if .CRD.Ops.ReadOne }}
     {{- template "sdk_find_read_one" . }}
 {{- else if .CRD.Ops.GetAttributes }}
@@ -40,6 +37,11 @@ func Generate{{ .CRD.Ops.Update.InputRef.Shape.ShapeName }}(cr *svcapitypes.{{ .
 	res := &svcsdk.{{ .CRD.Ops.Update.InputRef.Shape.ShapeName }}{}
 {{ GoCodeSetUpdateInput .CRD "cr" "res" 1 }}
 	return res
+}
+
+func isUpToDate(cr *svcapitypes.{{ .CRD.Names.Camel }}, resp *svcsdk.{{ .CRD.Ops.ReadOne.OutputRef.Shape.ShapeName }}) (bool, error) {
+{{ GoCodeIsUpToDate .CRD "resp" "cr" 1 false }}
+	return true, nil
 }
 {{- end}}
 

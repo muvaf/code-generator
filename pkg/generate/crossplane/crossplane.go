@@ -85,6 +85,9 @@ var (
 		"GoCodeSetDeleteInput": func(r *ackmodel.CRD, sourceVarName string, targetVarName string, indentLevel int) string {
 			return code.SetSDK(r.Config(), r, ackmodel.OpTypeDelete, sourceVarName, targetVarName, indentLevel)
 		},
+		"GoCodeIsUpToDate": func(r *ackmodel.CRD, sourceVarName string, targetVarName string, indentLevel int, performSpecUpdate bool) string {
+			return code.IsUpToDate(r.Config(), r, sourceVarName, targetVarName)
+		},
 		"GoCodeLateInitializeReadOne": func(r *ackmodel.CRD, sourceVarName string, targetVarName string, indentLevel int, performSpecUpdate bool) string {
 			return code.LateInitializeReadOne(r.Config(), r, sourceVarName, targetVarName)
 		},

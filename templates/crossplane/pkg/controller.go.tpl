@@ -146,6 +146,7 @@ func (e *external) Update(ctx context.Context, mg cpresource.Managed) (managed.E
 	if err != nil {
 		return managed.ExternalUpdate{}, awsclient.Wrap(err, errUpdate)
 	}
+{{ GoCodeSetUpdateOutput .CRD "resp" "cr" 1 false }}
 	return e.postUpdate(ctx, cr, resp, managed.ExternalUpdate{}, err)
 	{{- else }}
 	return e.update(ctx, mg)
@@ -163,8 +164,12 @@ func (e *external) Delete(ctx context.Context, mg cpresource.Managed) error {
 	if err := e.preDelete(ctx, cr, input); err != nil {
 		return errors.Wrap(err, "pre-delete failed")
 	}
-	_, err := e.client.{{ .CRD.Ops.Delete.Name }}WithContext(ctx, input)
-	return awsclient.Wrap(cpresource.Ignore(IsNotFound, err), errDelete)
+	resp, err := e.client.{{ .CRD.Ops.Delete.Name }}WithContext(ctx, input)
+	if cpresource.Ignore(IsNotFound, err) != nil {
+		return awsclient.Wrap(err, errDelete)
+	}
+{{ GoCodeSetDeleteOutput .CRD "resp" "cr" 1 false }}
+	return nil
 	{{- else }}
 	return e.delete(ctx, mg)
 	{{ end }}

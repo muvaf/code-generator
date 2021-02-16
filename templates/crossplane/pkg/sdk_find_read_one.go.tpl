@@ -19,4 +19,8 @@ func lateInitialize(cr *svcapitypes.{{ .CRD.Names.Camel }}, resp *svcsdk.{{ .CRD
 	return nil
 }
 
+func basicUpToDateCheck(cr *svcapitypes.{{ .CRD.Names.Camel }}, resp *svcsdk.{{ .CRD.Ops.ReadOne.OutputRef.Shape.ShapeName }}) bool {
+{{ GoCodeIsUpToDateReadOne .CRD "resp" "cr" 1 false }}
+	return true
+}
 {{- end -}}

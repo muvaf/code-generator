@@ -19,4 +19,8 @@ func lateInitialize(cr *svcapitypes.{{ .CRD.Names.Camel }}, resp *svcsdk.{{ .CRD
 	return nil
 }
 
+func basicUpToDateCheck(cr *svcapitypes.{{ .CRD.Names.Camel }}, resp *svcsdk.{{ .CRD.Ops.GetAttributes.OutputRef.Shape.ShapeName }}) bool {
+	// Not implemented for Attributes-based APIs.
+	return true
+}
 {{- end -}}

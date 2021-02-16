@@ -94,6 +94,12 @@ var (
 		"GoCodeLateInitializeGetAttributes": func(r *ackmodel.CRD, sourceVarName string, targetVarName string, indentLevel int, performSpecUpdate bool) string {
 			return code.LateInitializeGetAttributes(r.Config(), r, sourceVarName, targetVarName)
 		},
+		"GoCodeIsUpToDateReadOne": func(r *ackmodel.CRD, sourceVarName string, targetVarName string, indentLevel int, performSpecUpdate bool) string {
+			return code.IsUpToDateReadOne(r.Config(), r, sourceVarName, targetVarName)
+		},
+		"GoCodeIsUpToDateReadMany": func(r *ackmodel.CRD, sourceVarName string, targetVarName string, indentLevel int, performSpecUpdate bool) string {
+			return code.IsUpToDateReadMany(r.Config(), r, sourceVarName, targetVarName)
+		},
 		"Empty": func(subject string) bool {
 			return strings.TrimSpace(subject) == ""
 		},

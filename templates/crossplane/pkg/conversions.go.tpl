@@ -17,9 +17,6 @@ import (
 	awsclients "github.com/crossplane/provider-aws/pkg/clients"
 )
 
-// NOTE(muvaf): We return pointers in case the function needs to start with an
-// empty object, hence need to return a new pointer.
-
 {{ if .CRD.Ops.ReadOne }}
     {{- template "sdk_find_read_one" . }}
 {{- else if .CRD.Ops.GetAttributes }}

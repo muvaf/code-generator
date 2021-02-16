@@ -18,6 +18,8 @@ import (
 	"sort"
 	"strings"
 
+	awssdkmodel "github.com/aws/aws-sdk-go/private/model/api"
+
 	ackgenconfig "github.com/aws-controllers-k8s/code-generator/pkg/generate/config"
 	"github.com/aws-controllers-k8s/code-generator/pkg/generate/templateset"
 	ackmodel "github.com/aws-controllers-k8s/code-generator/pkg/model"
@@ -101,27 +103,79 @@ func (g *Generator) GetCRDs() ([]*ackmodel.CRD, error) {
 		g.RemoveIgnoredOperations(&ops)
 		crd := ackmodel.NewCRD(g.SDKAPI, g.cfg, crdNames, ops)
 
-		// OK, begin to gather the CRDFields that will go into the Spec struct.
-		// These fields are those members of the Create operation's Input
-		// Shape.
-		inputShape := createOp.InputRef.Shape
-		if inputShape == nil {
-			return nil, ErrNilShapePointer
+		var codeOps []*awssdkmodel.Operation
+		if ops.Create != nil {
+			codeOps = append(codeOps, ops.Create)
 		}
-		for memberName, memberShapeRef := range inputShape.MemberRefs {
-			if memberShapeRef.Shape == nil {
+		switch {
+		case ops.ReadOne != nil:
+			codeOps = append(codeOps, ops.ReadOne)
+		case ops.ReadMany != nil:
+			codeOps = append(codeOps, ops.ReadMany)
+		case ops.GetAttributes != nil:
+			codeOps = append(codeOps, ops.GetAttributes)
+		}
+		if ops.Delete != nil {
+			codeOps = append(codeOps, ops.Delete)
+		}
+
+		for _, op := range codeOps {
+			// OK, begin to gather the CRDFields that will go into the Spec struct.
+			// These fields are those members of the operation's Input
+			// Shape.
+			inputShape := op.InputRef.Shape
+			if inputShape == nil {
 				return nil, ErrNilShapePointer
 			}
-			renamedName, _ := crd.InputFieldRename(
-				createOp.Name, memberName,
-			)
-			memberNames := names.New(renamedName)
-			memberNames.ModelOrginal = memberName
-			if memberName == "Attributes" && g.cfg.UnpacksAttributesMap(crdName) {
-				crd.UnpackAttributes()
-				continue
+			for memberName, memberShapeRef := range inputShape.MemberRefs {
+				if memberShapeRef.Shape == nil {
+					return nil, ErrNilShapePointer
+				}
+				renamedName, _ := crd.InputFieldRename(
+					createOp.Name, memberName,
+				)
+				memberNames := names.New(renamedName)
+				memberNames.ModelOrginal = memberName
+				if memberName == "Attributes" && g.cfg.UnpacksAttributesMap(crdName) {
+					crd.UnpackAttributes()
+					continue
+				}
+				crd.AddSpecField(memberNames, memberShapeRef)
 			}
-			crd.AddSpecField(memberNames, memberShapeRef)
+			// Now process the fields that will go into the Status struct. We want
+			// fields that are in the operation's Output Shape but that are
+			// not in the Input Shape.
+			outputShape := op.OutputRef.Shape
+			if outputShape.UsedAsOutput && len(outputShape.MemberRefs) == 1 {
+				// We might be in a "wrapper" shape. Unwrap it to find the real object
+				// representation for the CRD's createOp. If there is a single member
+				// shape and that member shape is a structure, unwrap it.
+				for _, memberRef := range outputShape.MemberRefs {
+					if memberRef.Shape.Type == "structure" {
+						outputShape = memberRef.Shape
+					}
+				}
+			}
+			for memberName, memberShapeRef := range outputShape.MemberRefs {
+				if memberShapeRef.Shape == nil {
+					return nil, ErrNilShapePointer
+				}
+				memberNames := names.New(memberName)
+				if _, found := crd.SpecFields[memberName]; found {
+					// We don't put fields that are already in the Spec struct into
+					// the Status struct
+					continue
+				}
+				if memberName == "Attributes" && g.cfg.UnpacksAttributesMap(crdName) {
+					continue
+				}
+				if crd.IsPrimaryARNField(memberName) {
+					// We automatically place the primary resource ARN value into
+					// the Status.ACKResourceMetadata.ARN field
+					continue
+				}
+				crd.AddStatusField(memberNames, memberShapeRef)
+			}
 		}
 
 		// Now any additional Spec fields that are required from other API
@@ -154,41 +208,6 @@ func (g *Generator) GetCRDs() ([]*ackmodel.CRD, error) {
 				)
 				panic(msg)
 			}
-		}
-
-		// Now process the fields that will go into the Status struct. We want
-		// fields that are in the Create operation's Output Shape but that are
-		// not in the Input Shape.
-		outputShape := createOp.OutputRef.Shape
-		if outputShape.UsedAsOutput && len(outputShape.MemberRefs) == 1 {
-			// We might be in a "wrapper" shape. Unwrap it to find the real object
-			// representation for the CRD's createOp. If there is a single member
-			// shape and that member shape is a structure, unwrap it.
-			for _, memberRef := range outputShape.MemberRefs {
-				if memberRef.Shape.Type == "structure" {
-					outputShape = memberRef.Shape
-				}
-			}
-		}
-		for memberName, memberShapeRef := range outputShape.MemberRefs {
-			if memberShapeRef.Shape == nil {
-				return nil, ErrNilShapePointer
-			}
-			memberNames := names.New(memberName)
-			if _, found := crd.SpecFields[memberName]; found {
-				// We don't put fields that are already in the Spec struct into
-				// the Status struct
-				continue
-			}
-			if memberName == "Attributes" && g.cfg.UnpacksAttributesMap(crdName) {
-				continue
-			}
-			if crd.IsPrimaryARNField(memberName) {
-				// We automatically place the primary resource ARN value into
-				// the Status.ACKResourceMetadata.ARN field
-				continue
-			}
-			crd.AddStatusField(memberNames, memberShapeRef)
 		}
 
 		// Now add the additional Status fields that are required from other

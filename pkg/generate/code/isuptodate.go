@@ -182,6 +182,8 @@ func upToDate(responsePath, crPath string, r *model.CRD, str *awssdkmodel.ShapeR
 		return fmt.Sprintf("if awsclients.StringValue(%s) != awsclients.StringValue(%s) {\n return false\n}\n", crPath, responsePath)
 	case "long", "integer":
 		return fmt.Sprintf("if awsclients.Int64Value(%s) != awsclients.Int64Value(%s) {\n return false\n}\n", crPath, responsePath)
+	case "double":
+		return fmt.Sprintf("if awsclients.Float64Value(%s) != awsclients.Float64Value(%s) {\n return false\n}\n", crPath, responsePath)
 	case "boolean":
 		return fmt.Sprintf("if awsclients.BoolValue(%s) != awsclients.BoolValue(%s) {\n return false\n}\n", crPath, responsePath)
 	case "list":

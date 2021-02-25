@@ -209,6 +209,8 @@ func lateInit(responsePath, crPath string, r *model.CRD, str *awssdkmodel.ShapeR
 		return fmt.Sprintf("%s = awsclients.LateInitializeStringPtr(%s, %s)\n", crPath, crPath, responsePath)
 	case "long", "integer":
 		return fmt.Sprintf("%s = awsclients.LateInitializeInt64Ptr(%s, %s)\n", crPath, crPath, responsePath)
+	case "double":
+		return fmt.Sprintf("%s = awsclients.LateInitializeFloat64Ptr(%s, %s)\n", crPath, crPath, responsePath)
 	case "boolean":
 		return fmt.Sprintf("%s = awsclients.LateInitializeBoolPtr(%s, %s)\n", crPath, crPath, responsePath)
 	case "list":
